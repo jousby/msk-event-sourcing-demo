@@ -1,0 +1,36 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Coverage directory used by tools like istanbul
+coverage
+.nyc_output
+coverage.*
+
+# Dependency directory
+node_modules
+
+# Optional npm cache directory
+.npm
+
+# Optional REPL history
+.node_repl_history
+
+# Typescript build directory
+dist
+
+# Gradle
+.gradle
+gradle
+gradlew
+gradlew.bat
+
+# Gradle build directory
+build
+
+# Intellij IDEA
+.idea
+
+# CDK build directory
+cdk.out

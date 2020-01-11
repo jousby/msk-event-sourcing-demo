@@ -1,0 +1,4 @@
+rootProject.name = 'msk-event-sourcing-demo'
+
+include 'cdk-pipeline'
+include 'cdk-infra'

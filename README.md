@@ -1,1 +1,2 @@
-# msk-event-sourcing-demo
+# Event Sourcing demo with Amazon Managed Streaming for Apache Kafka
+

@@ -1,0 +1,53 @@
+// Common Project Configuration -----------------------------------------------
+
+allprojects {
+  group = 'com.myorg'
+  version = '0.0.1'
+  repositories {
+    mavenLocal()
+    mavenCentral()
+  }
+}
+
+subprojects {
+  apply plugin: 'java'
+  java {
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
+  }
+  clean {
+    delete 'cdk.out'
+  }
+}
+
+// Dependency Versions --------------------------------------------------------
+
+ext {
+  cdkVersion = '1.20.0'
+  simpleSourcingVersion = '0.2.7'
+  junitVersion = '4.12'
+}
+
+// Per Sub Project Configurations ---------------------------------------------
+
+project(':cdk-pipeline') {
+  apply plugin: 'application'
+  dependencies {
+    compile "software.amazon.awscdk:core:${cdkVersion}"
+    testCompile "junit:junit:${junitVersion}"
+  }
+  application {
+    mainClassName = 'com.myorg.CdkPipelineApp'
+  }
+}
+
+project(':cdk-infra') {
+  apply plugin: 'application'
+  dependencies {
+    compile "software.amazon.awscdk:core:${cdkVersion}"
+    testCompile "junit:junit:${junitVersion}"
+  }
+  application {
+    mainClassName = 'com.myorg.CdkPipelineApp'
+  }
+}
