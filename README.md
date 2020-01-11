@@ -1,0 +1,1 @@
+# msk-event-sourcing-demo
