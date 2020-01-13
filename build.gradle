@@ -72,3 +72,26 @@ project(':read-api') {
     mainClassName = 'software.amazon.samples.read.StartReadApi'
   }
 }
+
+project(':write-api') {
+  apply plugin: 'application'
+  dependencies {
+    implementation "com.sparkjava:spark-core:${sparkFrameworkVersion}"
+    implementation "ch.qos.logback:logback-classic:${logbackVersion}"
+    testImplementation "junit:junit:${junitVersion}"
+  }
+  application {
+    mainClassName = 'software.amazon.samples.write.StartWriteApi'
+  }
+}
+
+project(':projections') {
+  apply plugin: 'application'
+  dependencies {
+    implementation "ch.qos.logback:logback-classic:${logbackVersion}"
+    testImplementation "junit:junit:${junitVersion}"
+  }
+  application {
+    mainClassName = 'software.amazon.samples.projections.StartProjectionsService'
+  }
+}
