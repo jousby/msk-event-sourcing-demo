@@ -24,8 +24,11 @@ subprojects {
 
 ext {
   cdkVersion = '1.20.0'
-  simpleSourcingVersion = '0.2.7'
+  elasticsearchVersion = '7.4.0'
   junitVersion = '4.12'
+  logbackVersion = '1.2.3'
+  simpleSourcingVersion = '0.2.7'
+  sparkFrameworkVersion = '2.8.0'
 }
 
 // Sub Project Configurations -------------------------------------------------
@@ -33,13 +36,12 @@ ext {
 project(':cdk-pipeline') {
   apply plugin: 'application'
   dependencies {
-    compile "software.amazon.awscdk:iam:${cdkVersion}"
-    compile "software.amazon.awscdk:s3:${cdkVersion}"
-    compile "software.amazon.awscdk:codebuild:${cdkVersion}"
-    compile "software.amazon.awscdk:codepipeline:${cdkVersion}"
-    compile "software.amazon.awscdk:codepipeline-actions:${cdkVersion}"
-    compile "software.amazon.awscdk:secretsmanager:${cdkVersion}"
-    testCompile "junit:junit:${junitVersion}"
+    implementation "software.amazon.awscdk:iam:${cdkVersion}"
+    implementation "software.amazon.awscdk:s3:${cdkVersion}"
+    implementation "software.amazon.awscdk:codebuild:${cdkVersion}"
+    implementation "software.amazon.awscdk:codepipeline:${cdkVersion}"
+    implementation "software.amazon.awscdk:codepipeline-actions:${cdkVersion}"
+    implementation "software.amazon.awscdk:secretsmanager:${cdkVersion}"
   }
   application {
     mainClassName = 'software.amazon.samples.EventSourcingPipelineApp'
@@ -49,10 +51,24 @@ project(':cdk-pipeline') {
 project(':cdk-infra') {
   apply plugin: 'application'
   dependencies {
-    compile "software.amazon.awscdk:core:${cdkVersion}"
-    testCompile "junit:junit:${junitVersion}"
+    implementation "software.amazon.awscdk:core:${cdkVersion}"
   }
   application {
     mainClassName = 'software.amazon.samples.EventSourcingInfraApp'
+  }
+}
+
+project(':read-api') {
+  apply plugin: 'application'
+  dependencies {
+    implementation "com.sparkjava:spark-core:${sparkFrameworkVersion}"
+    implementation "ch.qos.logback:logback-classic:${logbackVersion}"
+    implementation "org.elasticsearch.client:elasticsearch-rest-high-level-client:${elasticsearchVersion}"
+    implementation "org.elasticsearch.client:elasticsearch-rest-client:${elasticsearchVersion}"
+    implementation "org.elasticsearch:elasticsearch:${elasticsearchVersion}"
+    testImplementation "junit:junit:${junitVersion}"
+  }
+  application {
+    mainClassName = 'software.amazon.samples.read.StartReadApi'
   }
 }
