@@ -1,7 +1,7 @@
 // Common Project Configuration -----------------------------------------------
 
 allprojects {
-  group = 'com.myorg'
+  group = 'software.amazon.samples'
   version = '0.0.1'
   repositories {
     mavenLocal()
@@ -28,16 +28,21 @@ ext {
   junitVersion = '4.12'
 }
 
-// Per Sub Project Configurations ---------------------------------------------
+// Sub Project Configurations -------------------------------------------------
 
 project(':cdk-pipeline') {
   apply plugin: 'application'
   dependencies {
-    compile "software.amazon.awscdk:core:${cdkVersion}"
+    compile "software.amazon.awscdk:iam:${cdkVersion}"
+    compile "software.amazon.awscdk:s3:${cdkVersion}"
+    compile "software.amazon.awscdk:codebuild:${cdkVersion}"
+    compile "software.amazon.awscdk:codepipeline:${cdkVersion}"
+    compile "software.amazon.awscdk:codepipeline-actions:${cdkVersion}"
+    compile "software.amazon.awscdk:secretsmanager:${cdkVersion}"
     testCompile "junit:junit:${junitVersion}"
   }
   application {
-    mainClassName = 'com.myorg.CdkPipelineApp'
+    mainClassName = 'software.amazon.samples.EventSourcingPipelineApp'
   }
 }
 
@@ -48,6 +53,6 @@ project(':cdk-infra') {
     testCompile "junit:junit:${junitVersion}"
   }
   application {
-    mainClassName = 'com.myorg.CdkPipelineApp'
+    mainClassName = 'software.amazon.samples.EventSourcingInfraApp'
   }
 }

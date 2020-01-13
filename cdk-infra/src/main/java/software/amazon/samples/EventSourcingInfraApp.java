@@ -1,14 +1,12 @@
-package com.myorg;
+package software.amazon.samples;
 
 import software.amazon.awscdk.core.App;
 
-import java.util.Arrays;
-
-public class CdkPipelineApp {
+public class EventSourcingInfraApp {
     public static void main(final String[] args) {
         App app = new App();
 
-        new CdkPipelineStack(app, "CdkPipelineStack");
+        new EventSourcingInfraStack(app, "EventSourcingInfraStack");
 
         app.synth();
     }

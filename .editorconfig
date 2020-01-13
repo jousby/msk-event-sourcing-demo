@@ -10,5 +10,5 @@ indent_style = space
 [*.{js,ts,tsx,java}]
 indent_size = 4
 
-[*.{json,yml}]
+[*.{json,yml,gradle}]
 indent_size = 2

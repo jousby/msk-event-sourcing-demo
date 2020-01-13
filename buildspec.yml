@@ -1,0 +1,33 @@
+version: 0.2
+
+phases:
+
+  pre_build:
+    commands:
+      - echo "Log Java version"
+      - bash -c "source /opt/sdkman/bin/sdkman-init.sh && java --version"
+      - echo "Log Gradle version"
+      - bash -c "source /opt/sdkman/bin/sdkman-init.sh && gradle --version"
+      - echo "Log Node version"
+      - bash -c "source /root/.nvm/nvm.sh && node --version"
+      - echo "Log NPM version"
+      - bash -c "source /root/.nvm/nvm.sh && npm --version"
+      - echo "Log CDK version"
+      - bash -c "source /opt/sdkman/bin/sdkman-init.sh && source /root/.nvm/nvm.sh && cdk --version"
+
+  build:
+    commands:
+      - echo "Build started on `date`"
+      - echo "Running gradle build"
+      - bash -c "source /opt/sdkman/bin/sdkman-init.sh && gradle build"
+      - echo "Running cdk to deploy infrastructure cloudformation stack"
+      - cd cdk-infra
+      - bash -c "source /opt/sdkman/bin/sdkman-init.sh && source /root/.nvm/nvm.sh && cdk deploy"
+
+  post_build:
+    commands:
+      - echo "Build completed on `date`"
+
+cache:
+  paths:
+    - '/root/.gradle/caches/**/*'
