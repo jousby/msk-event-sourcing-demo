@@ -34,3 +34,9 @@ build
 
 # CDK build directory
 cdk.out
+
+# Eclipse
+.classpath
+.project
+.settings
+bin
