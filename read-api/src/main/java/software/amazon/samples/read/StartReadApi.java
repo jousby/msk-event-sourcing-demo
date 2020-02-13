@@ -17,5 +17,4 @@ public class StartReadApi {
         get("/accounts/:id", (req, res) -> readApi.getAccount(req.params("id")));
         get("/accounts/:id/transactions", (req, res) -> readApi.getAccountTransactions(req.params("id")));
     }
-
 }

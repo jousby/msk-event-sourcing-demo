@@ -1,4 +1,4 @@
-package software.amazon.samples.read.domain;
+package software.amazon.samples.domain;
 
 public class Account {
     public final String id;

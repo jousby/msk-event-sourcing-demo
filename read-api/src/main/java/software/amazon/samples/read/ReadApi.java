@@ -1,7 +1,7 @@
 package software.amazon.samples.read;
 
-import software.amazon.samples.read.domain.Account;
-import software.amazon.samples.read.domain.Transaction;
+import software.amazon.samples.domain.Account;
+import software.amazon.samples.domain.Transaction;
 
 import java.util.List;
 import java.util.Optional;
