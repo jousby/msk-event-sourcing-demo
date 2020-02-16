@@ -5,6 +5,8 @@ import software.amazon.awscdk.core.Stack;
 import software.amazon.awscdk.core.StackProps;
 import software.amazon.awscdk.services.ec2.Vpc;
 import software.amazon.awscdk.services.ec2.VpcProps;
+import software.amazon.awscdk.services.elasticsearch.CfnDomain;
+import software.amazon.awscdk.services.elasticsearch.CfnDomainProps;
 import software.amazon.awscdk.services.msk.CfnCluster;
 import software.amazon.awscdk.services.msk.CfnClusterProps;
 
@@ -28,11 +30,12 @@ public class EventSourcingInfraStack extends Stack {
             CfnClusterProps.builder()
                 .clusterName("EventSourcingKafkaCluster")
                 .kafkaVersion("2.3.1")
+                .numberOfBrokerNodes(3)
                 .brokerNodeGroupInfo(CfnCluster.BrokerNodeGroupInfoProperty.builder()
                     .instanceType("kafka.m5.large")
                     .storageInfo(CfnCluster.StorageInfoProperty.builder()
                         .ebsStorageInfo(CfnCluster.EBSStorageInfoProperty.builder()
-                            .volumeSize(20)
+                            .volumeSize(40)
                             .build())
                         .build())
                     .clientSubnets(vpc.getPrivateSubnets().stream().map(s -> s.getSubnetId()).collect(Collectors.toList()))
@@ -45,6 +48,9 @@ public class EventSourcingInfraStack extends Stack {
                 .build());
 
         // Elasticsearch
+//        CfnDomain elasticsearchCluster = new CfnDomain(this, "ElasticsearchCluster",
+//            CfnDomainProps.builder()
+//                .build());
 
 
         // S3 webserver
