@@ -1,8 +1,8 @@
 {
   "app": "gradle -q run",
   "context": {
-    "regionalArtifactCacheBucketName": "joappdevone-ap-southeast-2-codebuild-cache",
-    "dockerBuildEnvImage": "jousby/aws-buildbox:1.5.0",
+    "regionalArtifactCacheBucketName": "josummit-ap-southeast-2-codebuild-cache",
+    "dockerBuildEnvImage": "jousby/aws-buildbox:1.6.1",
     "githubOwner": "jousby",
     "githubRepo": "msk-event-sourcing-demo",
     "githubBranch": "master",
