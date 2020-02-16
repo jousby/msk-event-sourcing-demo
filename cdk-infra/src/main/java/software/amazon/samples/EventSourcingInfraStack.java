@@ -23,7 +23,9 @@ public class EventSourcingInfraStack extends Stack {
         // The code that defines your stack goes here
 
         // Vpc setup
-        Vpc vpc = new Vpc(this, "EventSourcingVPC", VpcProps.builder().build());
+        Vpc vpc = new Vpc(this, "EventSourcingVPC", VpcProps.builder()
+            .maxAzs(3)
+            .build());
 
         // Kafka
         CfnCluster kafkaCluster = new CfnCluster(this, "EventSourcingKafka",
