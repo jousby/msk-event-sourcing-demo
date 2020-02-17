@@ -49,7 +49,7 @@ public class EventSourcingInfraStack extends Stack {
         // Elasticsearch
         CfnDomain elasticsearchCluster = new CfnDomain(this, "ElasticsearchCluster",
             CfnDomainProps.builder()
-                .domainName("EventSourcingDomain")
+                .domainName("eventsourcing")
                 .elasticsearchClusterConfig(CfnDomain.ElasticsearchClusterConfigProperty.builder()
                     .dedicatedMasterEnabled(true)
                     .instanceCount(2)
