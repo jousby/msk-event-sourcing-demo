@@ -21,15 +21,31 @@ public class EventSourcingInfraStack extends Stack {
         // The code that defines your stack goes here
 
         // Vpc setup
-        Vpc vpc = new Vpc(this, "EventSourcingVPC", VpcProps.builder()
-            .build());
+        Vpc vpc = new Vpc(this, "EventSourcingVPC", VpcProps.builder().build());
 
         // Kafka
-        CfnCluster kafkaCluster = new CfnCluster(this, "EventSourcingKafka",
+        CfnCluster kafkaCluster = eventSourcingKafka(vpc);
+
+        // Elasticsearch
+        CfnDomain elasticsearchCluster = eventSourcingElasticsearch(vpc);
+
+        // S3 webserver
+
+
+        // 3 x ECS Fargate
+
+        // Output
+        CfnOutput output = new CfnOutput(this, "kafkaUrl", CfnOutputProps.builder()
+            .value(kafkaCluster.getBrokerNodeGroupInfo().toString())
+            .build());
+    }
+
+    private CfnCluster eventSourcingKafka(Vpc vpc) {
+        return  new CfnCluster(this, "EventSourcingKafka",
             CfnClusterProps.builder()
                 .clusterName("EventSourcingKafkaCluster")
                 .kafkaVersion("2.3.1")
-                .numberOfBrokerNodes(2)
+                .numberOfBrokerNodes(3)
                 .brokerNodeGroupInfo(CfnCluster.BrokerNodeGroupInfoProperty.builder()
                     .instanceType("kafka.m5.large")
                     .storageInfo(CfnCluster.StorageInfoProperty.builder()
@@ -45,9 +61,10 @@ public class EventSourcingInfraStack extends Stack {
                         .build())
                     .build())
                 .build());
+    }
 
-        // Elasticsearch
-        CfnDomain elasticsearchCluster = new CfnDomain(this, "ElasticsearchCluster",
+    private CfnDomain eventSourcingElasticsearch(Vpc vpc) {
+        return new CfnDomain(this, "ElasticsearchCluster",
             CfnDomainProps.builder()
                 .domainName("eventsourcing")
                 .elasticsearchClusterConfig(CfnDomain.ElasticsearchClusterConfigProperty.builder()
@@ -68,15 +85,5 @@ public class EventSourcingInfraStack extends Stack {
                     .automatedSnapshotStartHour(0)
                     .build())
                 .build());
-
-
-        // S3 webserver
-
-        // 3 x ECS Fargate
-
-        // Output
-        CfnOutput output = new CfnOutput(this, "kafkaUrl", CfnOutputProps.builder()
-            .value(kafkaCluster.getBrokerNodeGroupInfo().toString())
-            .build());
     }
 }
