@@ -24,7 +24,6 @@ public class EventSourcingInfraStack extends Stack {
 
         // Vpc setup
         Vpc vpc = new Vpc(this, "EventSourcingVPC", VpcProps.builder()
-            .maxAzs(3)
             .build());
 
         // Kafka
@@ -32,7 +31,7 @@ public class EventSourcingInfraStack extends Stack {
             CfnClusterProps.builder()
                 .clusterName("EventSourcingKafkaCluster")
                 .kafkaVersion("2.3.1")
-                .numberOfBrokerNodes(3)
+                .numberOfBrokerNodes(2)
                 .brokerNodeGroupInfo(CfnCluster.BrokerNodeGroupInfoProperty.builder()
                     .instanceType("kafka.m5.large")
                     .storageInfo(CfnCluster.StorageInfoProperty.builder()
