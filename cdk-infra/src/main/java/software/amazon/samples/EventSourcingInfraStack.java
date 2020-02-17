@@ -1,8 +1,6 @@
 package software.amazon.samples;
 
-import software.amazon.awscdk.core.Construct;
-import software.amazon.awscdk.core.Stack;
-import software.amazon.awscdk.core.StackProps;
+import software.amazon.awscdk.core.*;
 import software.amazon.awscdk.services.ec2.Vpc;
 import software.amazon.awscdk.services.ec2.VpcProps;
 import software.amazon.awscdk.services.elasticsearch.CfnDomain;
@@ -49,14 +47,36 @@ public class EventSourcingInfraStack extends Stack {
                 .build());
 
         // Elasticsearch
-//        CfnDomain elasticsearchCluster = new CfnDomain(this, "ElasticsearchCluster",
-//            CfnDomainProps.builder()
-//                .build());
+        CfnDomain elasticsearchCluster = new CfnDomain(this, "ElasticsearchCluster",
+            CfnDomainProps.builder()
+                .domainName("EventSourcingDomain")
+                .elasticsearchClusterConfig(CfnDomain.ElasticsearchClusterConfigProperty.builder()
+                    .dedicatedMasterEnabled(true)
+                    .instanceCount(2)
+                    .zoneAwarenessEnabled(true)
+                    .instanceType("m3.medium.elasticsearch")
+                    .dedicatedMasterType("m3.medium.elasticsearch")
+                    .dedicatedMasterCount(3)
+                    .build())
+                .ebsOptions(CfnDomain.EBSOptionsProperty.builder()
+                    .ebsEnabled(true)
+                    .iops(0)
+                    .volumeSize(20)
+                    .volumeType("gp2")
+                    .build())
+                .snapshotOptions(CfnDomain.SnapshotOptionsProperty.builder()
+                    .automatedSnapshotStartHour(0)
+                    .build())
+                .build());
 
 
         // S3 webserver
 
         // 3 x ECS Fargate
 
+        // Output
+        CfnOutput output = new CfnOutput(this, "kafkaUrl", CfnOutputProps.builder()
+            .value(kafkaCluster.getBrokerNodeGroupInfo().toString())
+            .build());
     }
 }

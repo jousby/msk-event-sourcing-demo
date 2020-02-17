@@ -7,7 +7,7 @@ import software.amazon.awscdk.core.StackProps;
 public class EventSourcingInfraApp {
 
     private static Environment getEnv() {
-        // are we running in CodeBuild?
+        // Are we running in CodeBuild?
         // If so passing in the account and region to cdk helps contextualise VPC generation (this is clunky in
         // my opinion).
         String codeBuildARN = System.getenv("CODEBUILD_BUILD_ARN");

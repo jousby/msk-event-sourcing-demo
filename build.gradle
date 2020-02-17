@@ -51,6 +51,7 @@ project(':cdk-pipeline') {
 project(':cdk-infra') {
   apply plugin: 'application'
   dependencies {
+    implementation "software.amazon.awscdk:cdk-assets:${cdkVersion}"
     implementation "software.amazon.awscdk:ec2:${cdkVersion}"
     implementation "software.amazon.awscdk:ecs:${cdkVersion}"
     implementation "software.amazon.awscdk:elasticsearch:${cdkVersion}"
