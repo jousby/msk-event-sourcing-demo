@@ -27,7 +27,7 @@ public class EventSourcingInfraStack extends Stack {
         CfnCluster kafkaCluster = eventSourcingKafka(vpc);
 
         // Elasticsearch
-        CfnDomain elasticsearchCluster = eventSourcingElasticsearch(vpc);
+        //CfnDomain elasticsearchCluster = eventSourcingElasticsearch(vpc);
 
         // S3 webserver
 
@@ -35,9 +35,9 @@ public class EventSourcingInfraStack extends Stack {
         // 3 x ECS Fargate
 
         // Output
-        CfnOutput output = new CfnOutput(this, "kafkaUrl", CfnOutputProps.builder()
-            .value(kafkaCluster.getBrokerNodeGroupInfo().toString())
-            .build());
+//        CfnOutput output = new CfnOutput(this, "kafkaUrl", CfnOutputProps.builder()
+//            .value(kafkaCluster.getBrokerNodeGroupInfo().toString())
+//            .build());
     }
 
     private CfnCluster eventSourcingKafka(Vpc vpc) {
