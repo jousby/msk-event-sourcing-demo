@@ -27,7 +27,7 @@ public class EventSourcingInfraStack extends Stack {
         CfnCluster kafkaCluster = eventSourcingKafka(vpc);
 
         // Elasticsearch
-        //CfnDomain elasticsearchCluster = eventSourcingElasticsearch(vpc);
+        CfnDomain elasticsearchCluster = eventSourcingElasticsearch(vpc);
 
         // S3 webserver
 
