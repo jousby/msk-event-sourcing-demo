@@ -1,0 +1,14 @@
+
+.container {
+ background-color: #f4f4f4;
+ min-height: 800px;
+}
+
+.navbar {
+ background-color: #fc0;
+ font-family: "CBASlab",Arial,sans-serif;
+}
+
+.form-group label{
+ font-weight: bold
+}

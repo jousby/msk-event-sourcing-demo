@@ -1,12 +1,13 @@
 package software.amazon.samples.write;
 
-import java.util.List;
+import io.simplesource.data.Sequence;
+
 import java.util.Optional;
 
 public interface WriteApi {
-    void createAccount(String accountName, double openingBalance);
+    Optional<CreateAccountError> createAccount(String accountName, double openingBalance);
 
-    void deposit(String account, double amount, long sequence);
+    void deposit(String account, double amount, Sequence version);
 
-    void withdraw(String account, double amount, long sequence);
+    void withdraw(String account, double amount, Sequence version);
 }

@@ -1,24 +1,174 @@
 package software.amazon.samples.read;
+//
+//import org.apache.http.HttpHost;
+//import org.elasticsearch.action.get.GetRequest;
+//import org.elasticsearch.action.get.GetResponse;
+//import org.elasticsearch.action.search.SearchRequest;
+//import org.elasticsearch.action.search.SearchResponse;
+//import org.elasticsearch.client.RequestOptions;
+//import org.elasticsearch.client.RestClient;
+//import org.elasticsearch.client.RestHighLevelClient;
+//import org.elasticsearch.index.query.QueryBuilder;
+//import org.elasticsearch.index.query.QueryBuilders;
+//import org.elasticsearch.search.SearchHit;
+//import org.elasticsearch.search.builder.SearchSourceBuilder;
+//import org.slf4j.Logger;
+//import org.slf4j.LoggerFactory;
+//import software.amazon.samples.domain.Account;
+//import software.amazon.samples.domain.Transaction;
+//
+//import java.io.IOException;
+//import java.time.Instant;
+//import java.util.ArrayList;
+//import java.util.Iterator;
+//import java.util.List;
+//import java.util.Optional;
+//
+//public class ElasticsearchReadApi implements ReadApi{
+//    @Override
+//    public Optional<List<Account>> listAccounts() {
+//        return Optional.of(List.of(new Account("1", "Savings")));
+//    }
+//
+//    @Override
+//    public Optional<Account> getAccount(String id) {
+//        return Optional.of(new Account("1", "Savings"));
+//    }
+//
+//    @Override
+//    public Optional<List<Transaction>> getAccountTransactions(String id) {
+//        return Optional.of(List.of(new Transaction("1", 100.00)));
+//    }
+//}
 
-import software.amazon.samples.domain.Account;
-import software.amazon.samples.domain.Transaction;
+import org.apache.http.HttpHost;
+import org.elasticsearch.action.get.GetRequest;
+import org.elasticsearch.action.get.GetResponse;
+import org.elasticsearch.action.search.SearchRequest;
+import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.client.RequestOptions;
+import org.elasticsearch.client.RestClient;
+import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.index.query.QueryBuilder;
+import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.builder.SearchSourceBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import software.amazon.samples.domain.AccountSummary;
+import software.amazon.samples.domain.AccountTransaction;
 
+import java.io.IOException;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 
-public class ElasticsearchReadApi implements ReadApi{
-    @Override
-    public Optional<List<Account>> listAccounts() {
-        return Optional.of(List.of(new Account("1", "Savings")));
+
+/**
+ * Use Elasticsearch as our read datasource
+ */
+public class ElasticsearchReadApi implements ReadApi {
+    private static final Logger log = LoggerFactory.getLogger(ElasticsearchReadApi.class);
+
+    private static String ELASTICSEARCH_HOST = "elasticsearch";
+    private static int ELASTICSEARCH_PORT = 9200;
+
+    private static final String SUMMARY_INDEX = "simplesourcedemo_account_summary";
+    private static final String TRANSACTION_INDEX = "simplesourcedemo_account_transaction";
+
+
+    private final RestHighLevelClient esClient;
+
+    public ElasticsearchReadApi() {
+        esClient = new RestHighLevelClient(
+            RestClient.builder(
+                new HttpHost(ELASTICSEARCH_HOST, ELASTICSEARCH_PORT, "http")));
     }
 
     @Override
-    public Optional<Account> getAccount(String id) {
-        return Optional.of(new Account("1", "Savings"));
+    public Optional<AccountSummary> accountSummary(String accountName) {
+        GetRequest getRequest = new GetRequest(SUMMARY_INDEX, accountName);
+
+        try{
+            GetResponse getResponse = esClient.get(getRequest, RequestOptions.DEFAULT);
+            if(getResponse.isExists()) {
+                String account = (String) getResponse.getSourceAsMap().get("accountName");
+                double balance = (double) getResponse.getSourceAsMap().get("balance");
+                long version = Long.valueOf(getResponse.getSourceAsMap().get("sequence").toString());
+                return Optional.of(new AccountSummary(account, balance, version));
+            } else {
+                return Optional.empty();
+            }
+
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
     }
 
     @Override
-    public Optional<List<Transaction>> getAccountTransactions(String id) {
-        return Optional.of(List.of(new Transaction("1", 100.00)));
+    public List<AccountSummary> list() {
+        SearchRequest searchRequest = new SearchRequest();
+        searchRequest.indices(SUMMARY_INDEX);
+
+
+        try {
+            SearchResponse searchResponse = esClient.search(searchRequest, RequestOptions.DEFAULT);
+
+            ArrayList<AccountSummary> result = new ArrayList<>();
+
+            Iterator<SearchHit> searchHits = searchResponse.getHits().iterator();
+            SearchHit searchHit;
+            while (searchHits.hasNext()) {
+                searchHit = searchHits.next();
+                String account = (String) searchHit.getSourceAsMap().get("accountName");
+                double balance = (double) searchHit.getSourceAsMap().get("balance");
+                long version = Long.valueOf(searchHit.getSourceAsMap().get("sequence").toString());
+                result.add(new AccountSummary(account, balance, version));
+            }
+
+            return result;
+
+        } catch (IOException e) {
+            throw new RuntimeException("ElasticSearch query failure", e);
+        }
     }
+
+    @Override
+    public List<AccountTransaction> getTransactions(String accountName) {
+        SearchRequest searchRequest = new SearchRequest();
+        searchRequest.indices(TRANSACTION_INDEX);
+
+        QueryBuilder qb = QueryBuilders.termQuery("account", accountName);
+
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+        searchSourceBuilder.query(qb);
+
+        searchRequest.source(searchSourceBuilder);
+
+        try {
+            SearchResponse searchResponse = esClient.search(searchRequest, RequestOptions.DEFAULT);
+
+            ArrayList<AccountTransaction> result = new ArrayList<>();
+
+            Iterator<SearchHit> searchHits = searchResponse.getHits().iterator();
+            SearchHit searchHit;
+
+            while (searchHits.hasNext()) {
+                searchHit = searchHits.next();
+                double amount = (double) searchHit.getSourceAsMap().get("amount");
+                Instant ts = Instant.parse((String) searchHit.getSourceAsMap().get("time"));
+                result.add(new AccountTransaction(amount, ts));
+            }
+
+            return result;
+
+        } catch (IOException e) {
+            throw new RuntimeException("ElasticSearch query failure", e);
+        }
+
+    }
+
 }

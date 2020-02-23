@@ -1,16 +1,16 @@
 package software.amazon.samples.read;
 
-import software.amazon.samples.domain.Account;
-import software.amazon.samples.domain.Transaction;
+import software.amazon.samples.domain.AccountSummary;
+import software.amazon.samples.domain.AccountTransaction;
 
 import java.util.List;
 import java.util.Optional;
 
 public interface ReadApi {
 
-    Optional<List<Account>> listAccounts();
+    Optional<AccountSummary> accountSummary(String accountName);
 
-    Optional<Account> getAccount(String id);
+    List<AccountSummary> list();
 
-    Optional<List<Transaction>> getAccountTransactions(String id);
+    List<AccountTransaction> getTransactions(String accountName);
 }
