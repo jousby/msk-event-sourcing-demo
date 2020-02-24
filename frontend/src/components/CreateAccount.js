@@ -1,16 +1,19 @@
 import React, { useState } from 'react';
 import { useHistory} from "react-router-dom";
+import {postData} from "../service/RestfulClientService";
 
 function CreateAccount(){
 
-   const [name, setName] = useState();
+   const [name, setName] = useState('');
    const [balance, setBalance] = useState(0.00);
    const history = useHistory();
 
    function create(){
-    // call the create account API with name and balance;
-    //go back to My Accounts which should fetch the latest account list including this newly created one.
-    history.push("/myAccounts")
+     console.log("create account");
+    postData('http://localhost:4567/accounts?accountName='+name+'&openingBalance='+balance,{}, data=>{
+
+      history.push("/myAccounts");
+    },null);
    }
 
 
@@ -24,15 +27,15 @@ function CreateAccount(){
        <div className="row table mt-1">
         <div className="col">
        <form>
-         <div class="form-group">
-           <label for="name">Name</label>
-           <input class="form-control w-50" id="name" value={name} onChange={e=>setName(e.target.value)}/>
+         <div className="form-group">
+           <label >Name</label>
+           <input className="form-control w-50" value={name} onChange={e=>setName(e.target.value)}/>
          </div>
-         <div class="form-group">
-           <label for="openingBalance">Opening Balance</label>
-           <input type="number" step="0.01" class="form-control w-50" id="openingBalance" value={balance} onChange={e=>setBalance(e.target.value)}/>
+         <div className="form-group">
+           <label >Opening Balance</label>
+           <input type="number" step="0.01" className="form-control w-50" id="openingBalance" value={balance} onChange={e=>setBalance(e.target.value)}/>
          </div>
-         <button class="btn btn-dark" onClick={e=>create()}>Submit</button>
+         <button className="btn btn-dark" onClick={e=>create()}>Submit</button>
        </form>
        </div>
        </div>

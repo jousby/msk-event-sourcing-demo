@@ -1,35 +1,30 @@
 import React, { useState , useEffect } from 'react';
-
-const DUMMY_DATA = [
-    {
-      amount: 100.32,
-      date: '5 Jan 2020'
-    },
-    {
-      amount: 55.00,
-      date: '2 Jan 2020'
-    },
-    {
-      amount: 102.00,
-      date: '1 Jan 2020'
-    },
-    {
-      amount: 33.84,
-      date: '1 Jan 2020'
-    },
-
-]
+import {getData, postData} from "../service/RestfulClientService";
+import SystemMessageStore, { MessageType } from '../store/SystemMessageStore';
 
 const DEPOSIT_ACTION = 'Deposit';
 const WITHDRAW_ACTION = 'WithDraw';
 
 function Account(props){
-   const account = props.match.params.id;
-   const [data,setData] = useState(DUMMY_DATA);
+   const accName = props.match.params.id;
+   const [account, setAccount] = useState({balance: 0.00});
+   const [data,setData] = useState([]);
    const [showAction, setShowAction] = useState(false);
    const [amount, setAmount] = useState(0.00);
    const [action, setAction] = useState(DEPOSIT_ACTION);
-      //TODO call setData(xx) to set real data
+      
+   useEffect(()=>{
+    loadData();
+ },[]);
+ 
+ function loadData (){
+  getData("http://localhost:4568/accounts/"+accName, data=>{
+    setAccount(data);
+},null);
+     getData("http://localhost:4568/accounts/"+accName+"/transactions",data=>{
+         setData(data);
+     },null);
+ }
 
 
    function deposit(){
@@ -44,9 +39,19 @@ function Account(props){
 
    function submit(){
       setShowAction(false);
-      //TODO submit deposit/withdraw request
-
-      //TODO reload account transactions
+      let url = "http://localhost:4567/accounts/"+accName+"/"
+      if (action === DEPOSIT_ACTION){
+         url += 'deposit?amount='+amount+'&version='+account.version;
+      }else {
+        url += 'withdraw?amount='+amount+'&version='+account.version;
+      };
+      postData(url, {}, data=>{
+        loadData();
+      }, error=>{
+        console.log("error found");
+        SystemMessageStore.setMessage(MessageType.ERROR, error);
+      });
+      setAmount(0.00);
    }
 
    function cancel(){
@@ -57,7 +62,7 @@ function Account(props){
    <div>
    <div className="row mb-3">
         <div className="col">
-           <h3>Account</h3>{account}
+           <h3>Account</h3>{accName} <label className='ml-2'>{account.balance.toFixed(2)}</label>
         </div>
       </div>
        <div className="row">
@@ -68,18 +73,22 @@ function Account(props){
        <div className="row table mt-1">
         <div className="col">
              <table className='w-100'>
+               <thead>
                <tr>
                  <th>Date</th>
                  <th>Amount</th>
                </tr>
+               </thead>
+               <tbody>
                {data.map((transaction, index)=>{
                   return (
                              <tr key={index}>
-                                    <td>{transaction.date}</td>
-                                    <td>{transaction.amount}</td>
+                                    <td>{transaction.ts.seconds}</td>
+                                    <td>{transaction.amount.toFixed(2)}</td>
                                   </tr>
                    )
                })}
+               </tbody>
              </table>
              </div>
          </div>

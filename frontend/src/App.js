@@ -4,13 +4,15 @@ import "./App.css";
 import MyAccounts from "./components/MyAccounts";
 import Account from "./components/Account";
 import CreateAccount from "./components/CreateAccount";
+import SystemMessage from "./components/SystemMessage";
 
 function App() {
     return (
         <div className="App container">
-            <nav class="row navbar navbar-light mb-2">
-                <h2>UI Demo</h2>
+            <nav className="row navbar navbar-light mb-2">
+                <h2><a href="/accounts">UI Demo</a></h2>
             </nav>
+            <SystemMessage/>
             <HashRouter>
                 <div>
                     <Switch>

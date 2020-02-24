@@ -94,7 +94,7 @@ project(':read-api') {
     implementation project(':common')
     implementation "com.sparkjava:spark-core:${sparkFrameworkVersion}"
     implementation "ch.qos.logback:logback-classic:${logbackVersion}"
-    implementation "org.apache.logging.log4j:log4j-to-slf4j:${log4jToSlf4jBridgeVersion}"
+    implementation "org.apache.logging.log4j:log4j-to-slf4j:2.13.0"
     implementation "org.elasticsearch.client:elasticsearch-rest-high-level-client:${elasticsearchVersion}"
     implementation "org.elasticsearch.client:elasticsearch-rest-client:${elasticsearchVersion}"
     implementation "org.elasticsearch:elasticsearch:${elasticsearchVersion}"
@@ -116,7 +116,7 @@ project(':write-api') {
     implementation "io.simplesource:simplesource-command-serialization:${simpleSourcingVersion}"
     implementation "com.sparkjava:spark-core:${sparkFrameworkVersion}"
     implementation "ch.qos.logback:logback-classic:${logbackVersion}"
-    implementation "org.apache.logging.log4j:log4j-to-slf4j:${log4jToSlf4jBridgeVersion}"
+    implementation "org.apache.logging.log4j:log4j-to-slf4j:2.13.0"
     testImplementation "junit:junit:${junitVersion}"
   }
   application {
@@ -137,7 +137,7 @@ project(':projections') {
     implementation "org.elasticsearch:elasticsearch:${elasticsearchVersion}"
     implementation "org.apache.kafka:kafka-clients:${kafkaVersion}"
     implementation "ch.qos.logback:logback-classic:${logbackVersion}"
-    implementation "org.apache.logging.log4j:log4j-to-slf4j:${log4jToSlf4jBridgeVersion}"
+    implementation "org.apache.logging.log4j:log4j-to-slf4j:2.13.0"
     testImplementation "junit:junit:${junitVersion}"
   }
   application {
