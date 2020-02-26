@@ -17,8 +17,50 @@ read, write and projection services.
 TODO
 
 ## Running locally
-
 TODO
+
+## Running on an EC2 instance
+Provision an Amazon Linux 2 EC2 instance (m5.large or larger is recommended), ssh in ir an run:
+
+```bash
+sudo yum update -y
+sudo yum install -y git docker
+sudo groupadd docker
+sudo usermod -aG docker ${USER}
+sudo service docker start
+sudo systemctl enable docker
+sudo curl -L "https://github.com/docker/compose/releases/download/1.25.4/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+newgrp docker
+sudo chmod +x /usr/local/bin/docker-compose
+
+# for EC: increase vm.max_map_count is set to at least 262144 (see https://opendistro.github.io/for-elasticsearch-docs/docs/install/docker/)
+echo "vm.max_map_count=262144" | sudo tee -a /etc/sysctl.conf
+sudo sysctl -p
+
+# Install Amazon Corretto
+#sudo yum install -y java-1.8.0-openjdk
+#sudo amazon-linux-extras enable corretto8
+#sudo yum install -y java-1.8.0-amazon-corretto-devel
+sudo yum install -y java-11-amazon-corretto
+
+# Install Gradle
+gradle_version=6.2.1
+wget -c http://services.gradle.org/distributions/gradle-${gradle_version}-all.zip
+sudo unzip  gradle-${gradle_version}-all.zip -d /opt
+sudo ln -s /opt/gradle-${gradle_version} /opt/gradle
+printf "export GRADLE_HOME=/opt/gradle\nexport PATH=\$PATH:\$GRADLE_HOME/bin\n" | sudo tee /etc/profile.d/gradle.sh
+source /etc/profile.d/gradle.sh
+
+# Clone repo
+cd ~ && git clone https://github.com/jousby/msk-event-sourcing-demo && cd ./msk-event-sourcing-demo
+
+# Build read-api, write-api, projections
+gradle init
+gradle build
+
+docker-compose up # --detach
+```
+TODO: check/fix versions above and in ./docker-compose.yml
 
 ## Bootstrapping the project in AWS
 
