@@ -20,47 +20,33 @@ TODO
 TODO
 
 ## Running on an EC2 instance
-Provision an Amazon Linux 2 EC2 instance (m5.large or larger is recommended), ssh in ir an run:
+Provision an Amazon Linux 2 x86 EC2 instance (`m5.large` or bigger is recommended), start an interactive SSH session while forwarding ports `TCP:3000`, `TCP:4567`, `TCP:4568` and `TCP:5601`:
 
 ```bash
+ssh ec2-user@<instance-ip> -i <private-ssh-key> \
+    -R 3000:localhost:3000 \
+    -R 4567:localhost:4567 \
+    -R 4568:localhost:4568 \
+    -R 5601:localhost:5601
+```
+
+Once logged in as `ec2-user`, run the following commands:
+
+```bash
+# Install git and clone the repo
 sudo yum update -y
-sudo yum install -y git docker
-sudo groupadd docker
-sudo usermod -aG docker ${USER}
-sudo service docker start
-sudo systemctl enable docker
-sudo curl -L "https://github.com/docker/compose/releases/download/1.25.4/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-newgrp docker
-sudo chmod +x /usr/local/bin/docker-compose
-
-# for EC: increase vm.max_map_count is set to at least 262144 (see https://opendistro.github.io/for-elasticsearch-docs/docs/install/docker/)
-echo "vm.max_map_count=262144" | sudo tee -a /etc/sysctl.conf
-sudo sysctl -p
-
-# Install Amazon Corretto
-#sudo yum install -y java-1.8.0-openjdk
-#sudo amazon-linux-extras enable corretto8
-#sudo yum install -y java-1.8.0-amazon-corretto-devel
-sudo yum install -y java-11-amazon-corretto
-
-# Install Gradle
-gradle_version=6.2.1
-wget -c http://services.gradle.org/distributions/gradle-${gradle_version}-all.zip
-sudo unzip  gradle-${gradle_version}-all.zip -d /opt
-sudo ln -s /opt/gradle-${gradle_version} /opt/gradle
-printf "export GRADLE_HOME=/opt/gradle\nexport PATH=\$PATH:\$GRADLE_HOME/bin\n" | sudo tee /etc/profile.d/gradle.sh
-source /etc/profile.d/gradle.sh
-
-# Clone repo
+sudo yum install -y git
 cd ~ && git clone https://github.com/jousby/msk-event-sourcing-demo && cd ./msk-event-sourcing-demo
 
-# Build read-api, write-api, projections
-gradle init
-gradle build
+# Prepare enironment (docker, java, gradle, docker-compose)
+bash ./prepare-env.sh
 
-docker-compose up # --detach
+# Build modules
+bash ./build-all.sh
+
+# Deploy
+docker-compose up --detach
 ```
-TODO: check/fix versions above and in ./docker-compose.yml
 
 ## Bootstrapping the project in AWS
 

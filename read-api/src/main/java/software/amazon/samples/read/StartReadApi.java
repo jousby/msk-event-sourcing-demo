@@ -16,7 +16,6 @@ public class StartReadApi {
     public static void main(String[] args) {
         ReadApi readApi = new ElasticsearchReadApi();
 
-        // This automatically starts our http server on port 4568 - Ctl-C to stop
         port(4568);
         options("/*",
             (request, response) -> {

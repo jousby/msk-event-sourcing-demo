@@ -73,7 +73,9 @@ public class StartWriteApi {
             .start();
 
         WriteApi writeApi = new SimplesourceWriteApi(result.getCommandAPI("account"));
+        port(4567);
         options("/*",
+
             (request, response) -> {
 
                 String accessControlRequestHeaders = request

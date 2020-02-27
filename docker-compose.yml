@@ -4,10 +4,8 @@ services:
     image: amazon/opendistro-for-elasticsearch:1.4.0
     container_name: elasticsearch
     environment:
-      - cluster.name=elasticsearch-cluster
-      - node.name=elasticsearch
-      - discovery.seed_hosts=elasticsearch,elasticsearch-node2
-      - cluster.initial_master_nodes=elasticsearch,elasticsearch-node2
+      - discovery.type=single-node
+      - opendistro_security.disabled=true
       - bootstrap.memory_lock=true # along with the memlock settings below, disables swapping
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m" # minimum and maximum Java heap size, recommend setting both to 50% of system RAM
     ulimits:
@@ -18,87 +16,88 @@ services:
         soft: 65536 # maximum number of open files for the Elasticsearch user, set to at least 65536 on modern systems
         hard: 65536
     volumes:
-      - es-data1:/usr/share/elasticsearch/data
+      - data:/usr/share/elasticsearch/data
     ports:
       - 9200:9200
       - 9600:9600 # required for Performance Analyzer
     networks:
       - net
-  elasticsearch-node2:
-    image: amazon/opendistro-for-elasticsearch:1.4.0
-    container_name: elasticsearch-node2
+    healthcheck:
+      test: ["CMD", "curl", "-f", "-s", "http://elasticsearch:9200/_cluster/health"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
+  elasticsearch-create-index:
+    build: elasticsearch-create-index/
+    container_name: elasticsearch-create-index
     environment:
-      - cluster.name=elasticsearch-cluster
-      - node.name=elasticsearch-node2
-      - discovery.seed_hosts=elasticsearch,elasticsearch-node2
-      - cluster.initial_master_nodes=elasticsearch,elasticsearch-node2
-      - bootstrap.memory_lock=true
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
-    ulimits:
-      memlock:
-        soft: -1
-        hard: -1
-      nofile:
-        soft: 65536
-        hard: 65536
-    volumes:
-      - es-data2:/usr/share/elasticsearch/data
+      ELASTICSEARCH_URL: 'http://elasticsearch:9200'
     networks:
       - net
+    depends_on: 
+      - elasticsearch
   kibana:
     image: amazon/opendistro-for-elasticsearch-kibana:1.4.0
     container_name: kibana
+    depends_on:
+      - elasticsearch
     ports:
       - 5601:5601
     expose:
-      - "5601"
+      - 5601
     environment:
-      ELASTICSEARCH_URL: https://elasticsearch:9200
-      ELASTICSEARCH_HOSTS: https://elasticsearch:9200
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
     networks:
       - net
-  zoo1:
+    restart: on-failure
+    healthcheck:
+      test: ["CMD", "curl", "-f", "-s", "http://kibana:5601"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
+  zk1:
     image: zookeeper
-    container_name: zoo1
+    container_name: zk1
     restart: always
-    hostname: zoo1
+    hostname: zk1
     ports:
       - 2181:2181
     environment:
       ZOO_MY_ID: 1
-      ZOO_SERVERS: server.1=0.0.0.0:2888:3888;2181 server.2=zoo2:2888:3888;2181 server.3=zoo3:2888:3888;2181
+      ZOO_SERVERS: server.1=0.0.0.0:2888:3888;2181 server.2=zk2:2888:3888;2181 server.3=zk3:2888:3888;2181
       ZOO_PORT: 2181
       COMPONENT: zookeeper
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
     networks:
       - net
-  zoo2:
+  zk2:
     image: zookeeper
-    container_name: zoo2
+    container_name: zk2
     restart: always
-    hostname: zoo2
+    hostname: zk2
     ports:
       - 2182:2181
     environment:
       ZOO_MY_ID: 2
-      ZOO_SERVERS: server.1=zoo1:2888:3888;2181 server.2=0.0.0.0:2888:3888;2181 server.3=zoo3:2888:3888;2181
+      ZOO_SERVERS: server.1=zk1:2888:3888;2181 server.2=0.0.0.0:2888:3888;2181 server.3=zk3:2888:3888;2181
       ZOO_PORT: 2181
       COMPONENT: zookeeper
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
     networks:
       - net
-  zoo3:
+  zk3:
     image: zookeeper
-    container_name: zoo3
+    container_name: zk3
     restart: always
-    hostname: zoo3
+    hostname: zk3
     ports:
       - 2183:2181
     environment:
       ZOO_MY_ID: 3
-      ZOO_SERVERS: server.1=zoo1:2888:3888;2181 server.2=zoo2:2888:3888;2181 server.3=0.0.0.0:2888:3888;2181
+      ZOO_SERVERS: server.1=zk1:2888:3888;2181 server.2=zk2:2888:3888;2181 server.3=0.0.0.0:2888:3888;2181
       ZOO_PORT: 2181
       COMPONENT: zookeeper
       ZOOKEEPER_CLIENT_PORT: 2181
@@ -106,14 +105,14 @@ services:
     networks:
       - net
   kafka:
-    image: 'wurstmeister/kafka'
+    image: wurstmeister/kafka
     container_name: kafka
     hostname: kafka
     stop_grace_period: 120s
     depends_on:
-      - zoo1
-      - zoo2
-      - zoo3
+      - zk1
+      - zk2
+      - zk3
     ports:
       - "9092:9092"
       - "8500:8500"
@@ -121,14 +120,14 @@ services:
       COMPONENT: kafka
       KAFKA_BROKER_ID: 1001
       KAFKA_RESERVED_BROKER_MAX_ID: 10000
-      KAFKA_ZOOKEEPER_CONNECT: 'zoo1:2181,zoo2:2181,zoo3:2181'
+      KAFKA_ZOOKEEPER_CONNECT: 'zk1:2181,zk2:2181,zk3:2181'
       KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://kafka:9092'
       KAFKA_LISTENERS: 'PLAINTEXT://kafka:9092'
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'false'
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
       KAFKA_JMX_OPTS: '-Dcom.sun.management.jmxremote=true -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=kafka -Djava.net.preferIPv4Stack=true -Dcom.sun.management.jmxremote.rmi.port=8500'
     networks:
       - net    
@@ -139,13 +138,21 @@ services:
     stop_grace_period: 120s
     depends_on:
       - elasticsearch
-      - elasticsearch-node2
     environment:
       COMPONENT: read-api
+    ports:
+      - 4568:4568
+    expose:
+      - 4568
     networks:
       - net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "-s", "http://read-api:4568"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
   write-api:
-    build: 'write-api/'
+    build: write-api/
     container_name: write-api
     hostname: write-api
     stop_grace_period: 120s
@@ -153,21 +160,51 @@ services:
       - kafka
     environment:
       COMPONENT: write-api
+    ports:
+      - 4567:4567
+    expose:
+      - 4567
     networks:
       - net
+    healthcheck:
+      test: ["CMD", "curl", "-s", "http://write-api:4567/accounts"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
+  frontend:
+    build: frontend/
+    container_name: frontend
+    hostname: frontend
+    stop_grace_period: 120s
+    environment:
+      COMPONENT: frontend
+    ports:
+      - "3000:3000"
+    expose:
+      - 3000
+    depends_on: 
+      - read-api
+      - write-api
+    networks:
+      - net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "-s", "http://frontend:3000"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
   projections:
-    build: 'projections/'
+    build: projections/
     container_name: projections
     hostname: projections
     stop_grace_period: 120s
     depends_on:
       - kafka
+      - elasticsearch
     environment:
       COMPONENT: projections
     networks:
       - net
 volumes:
-  es-data1:
-  es-data2:
+  data:
 networks:
   net:
