@@ -44,10 +44,13 @@ bash ./prepare-env.sh
 # ec2-user has been added to the docker group. Apply new group membership without having to re-login
 sudo su - $USER
 
+# it's a new session - need to cd to ~/msk-event-sourcing-demo again
+cd ./msk-event-sourcing-demo
+
 # Build modules
 bash ./build-all.sh
 
-# Deploy
+# Run
 docker-compose up --detach
 ```
 
