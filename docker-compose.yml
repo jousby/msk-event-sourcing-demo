@@ -22,11 +22,12 @@ services:
       - 9600:9600 # required for Performance Analyzer
     networks:
       - net
+    restart: on-failure
     healthcheck:
       test: ["CMD", "curl", "-f", "-s", "http://elasticsearch:9200/_cluster/health"]
       interval: 30s
       timeout: 30s
-      retries: 3
+      retries: 6
   elasticsearch-create-index:
     build: elasticsearch-create-index/
     container_name: elasticsearch-create-index
@@ -37,7 +38,8 @@ services:
     depends_on: 
       - elasticsearch
   kibana:
-    image: amazon/opendistro-for-elasticsearch-kibana:1.4.0
+    build: kibana/
+    # image: amazon/opendistro-for-elasticsearch-kibana:1.4.0
     container_name: kibana
     depends_on:
       - elasticsearch
@@ -55,7 +57,7 @@ services:
       test: ["CMD", "curl", "-f", "-s", "http://kibana:5601"]
       interval: 30s
       timeout: 30s
-      retries: 3
+      retries: 6
   zk1:
     image: zookeeper
     container_name: zk1
@@ -72,6 +74,7 @@ services:
       ZOOKEEPER_TICK_TIME: 2000
     networks:
       - net
+    restart: on-failure
   zk2:
     image: zookeeper
     container_name: zk2
@@ -88,6 +91,7 @@ services:
       ZOOKEEPER_TICK_TIME: 2000
     networks:
       - net
+    restart: on-failure
   zk3:
     image: zookeeper
     container_name: zk3
@@ -104,6 +108,7 @@ services:
       ZOOKEEPER_TICK_TIME: 2000
     networks:
       - net
+    restart: on-failure
   kafka:
     image: wurstmeister/kafka
     container_name: kafka
@@ -131,8 +136,9 @@ services:
       KAFKA_JMX_OPTS: '-Dcom.sun.management.jmxremote=true -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=kafka -Djava.net.preferIPv4Stack=true -Dcom.sun.management.jmxremote.rmi.port=8500'
     networks:
       - net    
+    restart: on-failure
   read-api:
-    build: 'read-api/'
+    build: read-api/
     container_name: read-api
     hostname: read-api
     stop_grace_period: 120s
@@ -147,10 +153,11 @@ services:
     networks:
       - net
     healthcheck:
-      test: ["CMD", "curl", "-f", "-s", "http://read-api:4568"]
+      test: ["CMD", "curl", "-f", "-s", "http://read-api:4568/accounts"]
       interval: 30s
       timeout: 30s
-      retries: 3
+      retries: 6
+    restart: on-failure
   write-api:
     build: write-api/
     container_name: write-api
@@ -170,7 +177,8 @@ services:
       test: ["CMD", "curl", "-s", "http://write-api:4567/accounts"]
       interval: 30s
       timeout: 30s
-      retries: 3
+      retries: 6
+    restart: on-failure
   frontend:
     build: frontend/
     container_name: frontend
@@ -191,7 +199,8 @@ services:
       test: ["CMD", "curl", "-f", "-s", "http://frontend:3000"]
       interval: 30s
       timeout: 30s
-      retries: 3
+      retries: 6
+    restart: on-failure
   projections:
     build: projections/
     container_name: projections
@@ -204,6 +213,7 @@ services:
       COMPONENT: projections
     networks:
       - net
+    restart: on-failure
 volumes:
   data:
 networks:

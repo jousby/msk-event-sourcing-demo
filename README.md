@@ -24,10 +24,10 @@ Provision an Amazon Linux 2 x86 EC2 instance (`m5.large` or bigger is recommende
 
 ```bash
 ssh ec2-user@<instance-ip> -i <private-ssh-key> \
-    -R 3000:localhost:3000 \
-    -R 4567:localhost:4567 \
-    -R 4568:localhost:4568 \
-    -R 5601:localhost:5601
+    -L 3000:localhost:3000 \
+    -L 4567:localhost:4567 \
+    -L 4568:localhost:4568 \
+    -L 5601:localhost:5601
 ```
 
 Once logged in as `ec2-user`, run the following commands:
