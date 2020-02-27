@@ -2,12 +2,10 @@
 
 sudo yum update -y
 sudo yum install docker -y
-sudo groupadd docker
 sudo usermod -aG docker ${USER}
 sudo service docker start
 sudo systemctl enable docker
 sudo curl -L "https://github.com/docker/compose/releases/download/1.25.4/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-newgrp docker
 sudo chmod +x /usr/local/bin/docker-compose
 
 # for EC: increase vm.max_map_count is set to at least 262144 (see https://opendistro.github.io/for-elasticsearch-docs/docs/install/docker/)

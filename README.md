@@ -36,10 +36,13 @@ Once logged in as `ec2-user`, run the following commands:
 # Install git and clone the repo
 sudo yum update -y
 sudo yum install -y git
-cd ~ && git clone https://github.com/jousby/msk-event-sourcing-demo && cd ./msk-event-sourcing-demo
+cd ~ && git clone https://github.com/iizotov/msk-event-sourcing-demo && cd ./msk-event-sourcing-demo
 
 # Prepare enironment (docker, java, gradle, docker-compose)
 bash ./prepare-env.sh
+
+# ec2-user has been added to the docker group. Apply new group membership without having to re-login
+sudo su - $USER
 
 # Build modules
 bash ./build-all.sh
@@ -47,6 +50,11 @@ bash ./build-all.sh
 # Deploy
 docker-compose up --detach
 ```
+
+Give it some time to start, you can monitor status by running `docker-compose ps`. 
+Once it's running, you should be able to navigate to:
+- [http://localhost:3000](http://localhost:3000) to access the demo's frontend
+- [http://localhost:5601](http://localhost:5601) to access Kibana (admin/admin)
 
 ## Bootstrapping the project in AWS
 
