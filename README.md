@@ -17,8 +17,48 @@ read, write and projection services.
 TODO
 
 ## Running locally
-
 TODO
+
+## Running on an EC2 instance
+Provision an Amazon Linux 2 x86 EC2 instance (`m5.large` or bigger is recommended), start an interactive SSH session while forwarding ports `TCP:3000`, `TCP:4567`, `TCP:4568` and `TCP:5601`:
+
+```bash
+ssh ec2-user@<instance-ip> -i <private-ssh-key> \
+    -L 3000:localhost:3000 \
+    -L 4567:localhost:4567 \
+    -L 4568:localhost:4568 \
+    -L 5601:localhost:5601
+```
+
+Once logged in as `ec2-user`, run the following commands:
+
+```bash
+# Install git and clone the repo
+sudo yum update -y
+sudo yum install -y git
+git clone https://github.com/iizotov/msk-event-sourcing-demo
+cd ./msk-event-sourcing-demo
+
+# Prepare enironment (docker, java, gradle, docker-compose)
+bash ./prepare-env.sh
+
+# ec2-user has been added to the docker group. Apply new group membership without having to re-login
+sudo su - $USER
+
+# it's a new session - need to cd to ./msk-event-sourcing-demo again
+cd ./msk-event-sourcing-demo
+
+# Build modules
+bash ./build-all.sh
+
+# Run
+docker-compose up --detach
+```
+
+Give it some time to start, you can monitor status by running `docker-compose ps`. 
+Once it's running, you should be able to navigate to:
+- [http://localhost:3000](http://localhost:3000) to access the demo's frontend
+- [http://localhost:5601](http://localhost:5601) to access Kibana
 
 ## Bootstrapping the project in AWS
 
