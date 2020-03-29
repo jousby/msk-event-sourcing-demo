@@ -4,7 +4,7 @@ phases:
   install:
     runtime-versions:
       java: corretto11
-      node: 12
+      nodejs: 12
     commands:
       - npm install -g aws-cdk
 
