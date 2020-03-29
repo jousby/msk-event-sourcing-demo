@@ -35,7 +35,7 @@ services:
       ELASTICSEARCH_URL: 'http://elasticsearch:9200'
     networks:
       - net
-    depends_on: 
+    depends_on:
       - elasticsearch
   kibana:
     build: kibana/
@@ -135,7 +135,7 @@ services:
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
       KAFKA_JMX_OPTS: '-Dcom.sun.management.jmxremote=true -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=kafka -Djava.net.preferIPv4Stack=true -Dcom.sun.management.jmxremote.rmi.port=8500'
     networks:
-      - net    
+      - net
     restart: on-failure
   read-api:
     build: read-api/
@@ -153,7 +153,7 @@ services:
     networks:
       - net
     healthcheck:
-      test: ["CMD", "curl", "-f", "-s", "http://read-api:4568/accounts"]
+      test: ["CMD", "curl", "-f", "-s", "http://read-api:4568/healthcheck"]
       interval: 30s
       timeout: 30s
       retries: 6
@@ -174,7 +174,7 @@ services:
     networks:
       - net
     healthcheck:
-      test: ["CMD", "curl", "-s", "http://write-api:4567/accounts"]
+      test: ["CMD", "curl", "-s", "http://write-api:4567/healthcheck"]
       interval: 30s
       timeout: 30s
       retries: 6
@@ -190,7 +190,7 @@ services:
       - "3000:3000"
     expose:
       - 3000
-    depends_on: 
+    depends_on:
       - read-api
       - write-api
     networks:

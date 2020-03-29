@@ -1,19 +1,24 @@
 import React, { useState, useEffect } from "react";
 import { useHistory, Link } from "react-router-dom";
-import {getData} from "../service/RestfulClientService";
+import { getData } from "../service/RestfulClientService";
+import { readApiEndpoint } from "../service/Endpoints";
 
 function MyAccounts() {
     const history = useHistory();
     const [data, setData] = useState([]);
 
-    useEffect(()=>{
-       loadData();
-    },[]);
-    
-    function loadData (){
-        getData("http://localhost:4568/accounts",data=>{
-            setData(data);
-        },null);
+    useEffect(() => {
+        loadData();
+    }, []);
+
+    function loadData() {
+        getData(
+            readApiEndpoint + "/accounts",
+            data => {
+                setData(data);
+            },
+            null
+        );
     }
 
     return (
@@ -26,36 +31,38 @@ function MyAccounts() {
             <div className="row table mt-1">
                 <table className="w-100">
                     <thead>
-                    <tr>
-                        <th>Account</th>
-                        <th>Balance</th>
-                    </tr>
+                        <tr>
+                            <th>Account</th>
+                            <th>Balance</th>
+                        </tr>
                     </thead>
                     <tbody>
-                    {data.map((acc, index) => {
-                        return (
-                            <tr key={index}>
-                                <td>
-                                    <Link to={"/account/" + acc.accountName}>
-                                        {acc.accountName}
-                                    </Link>
-                                </td>
-                                <td>{acc.balance.toFixed(2)}</td>
-                            </tr>
-                        );
-                    })}
+                        {data.map((acc, index) => {
+                            return (
+                                <tr key={index}>
+                                    <td>
+                                        <Link
+                                            to={"/account/" + acc.accountName}
+                                        >
+                                            {acc.accountName}
+                                        </Link>
+                                    </td>
+                                    <td>{acc.balance.toFixed(2)}</td>
+                                </tr>
+                            );
+                        })}
                     </tbody>
                 </table>
             </div>
             <div className="row">
-            <div className="col">
-                <button
-                    type="button"
-                    className="btn btn-dark mr-auto"
-                    onClick={e => history.push("/createAccount")}
-                >
-                    Create Account
-                </button>
+                <div className="col">
+                    <button
+                        type="button"
+                        className="btn btn-dark mr-auto"
+                        onClick={e => history.push("/createAccount")}
+                    >
+                        Create Account
+                    </button>
                 </div>
             </div>
         </div>

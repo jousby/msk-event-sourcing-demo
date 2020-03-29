@@ -27,6 +27,7 @@ public class SimplesourceWriteApi implements WriteApi {
 
     @Override
     public Optional<CreateAccountError> createAccount(String accountName, double openingBalance) {
+        log.debug("in create account function: " + accountName + ", " + openingBalance);
         FutureResult<CommandError, Sequence> result = commandApi.publishAndQueryCommand(
             new CommandAPI.Request<>(
                 CommandId.random(),

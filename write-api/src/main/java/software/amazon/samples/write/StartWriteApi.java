@@ -1,5 +1,13 @@
 package software.amazon.samples.write;
 
+import com.amazonaws.client.builder.AwsClientBuilder;
+import com.amazonaws.services.kafka.AWSKafka;
+import com.amazonaws.services.kafka.AWSKafkaClientBuilder;
+import com.amazonaws.services.kafka.model.DescribeClusterRequest;
+import com.amazonaws.services.kafka.model.GetBootstrapBrokersRequest;
+import com.amazonaws.services.kafka.model.GetBootstrapBrokersResult;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.simplesource.api.CommandAPISet;
 import io.simplesource.data.Sequence;
 import io.simplesource.kafka.api.AggregateSerdes;
@@ -9,10 +17,16 @@ import io.simplesource.kafka.dsl.EventSourcedClient;
 import io.simplesource.kafka.serialization.json.JsonAggregateSerdes;
 import io.simplesource.kafka.serialization.json.JsonCommandSerdes;
 import io.simplesource.kafka.util.PrefixResourceNamingStrategy;
+import org.apache.http.NameValuePair;
+import org.apache.http.client.utils.URLEncodedUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.samples.write.simplesource.*;
 
+import java.nio.charset.Charset;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static io.simplesource.kafka.serialization.json.JsonGenericMapper.jsonDomainMapper;
@@ -21,12 +35,21 @@ import static spark.Spark.*;
 
 public class StartWriteApi {
     private static String KAFKA_GROUP_ID = "demo";
-    private static String KAFKA_BOOTSTRAP_SERVERS = "kafka:9092";
 
     private static final Logger log = LoggerFactory.getLogger(StartWriteApi.class);
 
     public static void main(String[] args) {
-       AggregateSerdes<String, AccountCommand, AccountEvent, Optional<Account>> ACCOUNT_AGGREGATE_SERDES  =
+        String kafkaClusterArn = System.getenv("KAFKA_CLUSTER_ARN");
+        log.info("Kafka cluster ARN: " + kafkaClusterArn);
+
+        AWSKafka kafka = AWSKafkaClientBuilder.standard().build();
+        GetBootstrapBrokersResult brokersResult = kafka.getBootstrapBrokers(
+            new GetBootstrapBrokersRequest().withClusterArn(kafkaClusterArn));
+
+        String kafkaBootstrapBrokers = brokersResult.getBootstrapBrokerString();
+        log.info("Bootstrap brokers: " + kafkaBootstrapBrokers);
+
+        AggregateSerdes<String, AccountCommand, AccountEvent, Optional<Account>> ACCOUNT_AGGREGATE_SERDES  =
             new JsonAggregateSerdes<>(
                 jsonDomainMapper(),
                 jsonDomainMapper(),
@@ -40,7 +63,7 @@ public class StartWriteApi {
             .withKafkaConfig(builder ->
                 builder
                     .withKafkaApplicationId(KAFKA_GROUP_ID)
-                    .withKafkaBootstrap(KAFKA_BOOTSTRAP_SERVERS)
+                    .withKafkaBootstrap(kafkaBootstrapBrokers)
                     .build()
             )
             .<String, AccountCommand>addCommands(builder ->
@@ -50,14 +73,14 @@ public class StartWriteApi {
                     .withName("account")
                     .withSerdes(ACCOUNT_COMMAND_SERDES)
                     .withResourceNamingStrategy(new PrefixResourceNamingStrategy())
-                    .withTopicSpec(1, 1)
+                    .withTopicSpec(9, 3)
             ).build();
 
         new EventSourcedApp()
             .withKafkaConfig(builder ->
                 builder
                     .withKafkaApplicationId("simplesourcing-demo")
-                    .withKafkaBootstrap(KAFKA_BOOTSTRAP_SERVERS)
+                    .withKafkaBootstrap(kafkaBootstrapBrokers)
                     .build()
             )
             .<String, AccountCommand, AccountEvent, Optional<Account>>addAggregate(aggregateBuilder ->
@@ -99,12 +122,17 @@ public class StartWriteApi {
     }
 
     public static void defineRoutes(WriteApi writeApi) {
-        get("/healthcheck", (req, res) -> "OK");
+        get("/", (req, res) -> "OK");
 
         post("/accounts", (req, res) -> {
+            Map<String, String> params = toMap(req.body());
+
+            String accountName = getUnsafeValue("accountName", params);
+            String openingBalance = getUnsafeValue("openingBalance", params);
+
             Optional<CreateAccountError> result = writeApi.createAccount(
-                req.queryParams("accountName"),
-                Double.parseDouble(req.queryParams("openingBalance"))
+                accountName,
+                Double.parseDouble(openingBalance)
             );
 
             return result.map(e -> e.message()).orElse("OK");
@@ -129,6 +157,19 @@ public class StartWriteApi {
 
             return "OK";
         });
+    }
+
+    private static Map<String, String> toMap(String jsonString) throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        return mapper.readValue(jsonString, new TypeReference<Map<String, String>>(){});
+    }
+
+    private static String getUnsafeValue(String paramName, Map<String, String> params) throws Exception {
+        String value = params.get(paramName);
+        if (value == null) {
+            throw new Exception("The following parameter was not present in the request: " + paramName);
+        }
+        return value;
     }
 }
 

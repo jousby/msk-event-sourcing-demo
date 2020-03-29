@@ -1,6 +1,5 @@
 package software.amazon.samples;
 
-import org.jetbrains.annotations.NotNull;
 import software.amazon.awscdk.core.Construct;
 import software.amazon.awscdk.core.Stack;
 import software.amazon.awscdk.core.StackProps;
@@ -8,15 +7,10 @@ import software.amazon.awscdk.core.StackProps;
 import software.amazon.awscdk.core.*;
 import software.amazon.awscdk.services.codebuild.*;
 import software.amazon.awscdk.services.codepipeline.*;
-import software.amazon.awscdk.services.codepipeline.actions.CodeBuildAction;
-import software.amazon.awscdk.services.codepipeline.actions.CodeBuildActionProps;
-import software.amazon.awscdk.services.codepipeline.actions.GitHubSourceAction;
-import software.amazon.awscdk.services.codepipeline.actions.GitHubSourceActionProps;
+import software.amazon.awscdk.services.codepipeline.actions.*;
 import 	software.amazon.awscdk.services.ecr.Repository;
 import software.amazon.awscdk.services.ecr.RepositoryProps;
 import software.amazon.awscdk.services.iam.ManagedPolicy;
-import software.amazon.awscdk.services.s3.Bucket;
-import software.amazon.awscdk.services.s3.IBucket;
 
 import java.util.List;
 import java.util.Map;
@@ -34,19 +28,39 @@ public class EventSourcingPipelineStack extends Stack {
         // Build a configuration object from context injected from values stored in 'cdk.json' or via cdk cli
         EventSourcingPipelineStackConfig conf = new EventSourcingPipelineStackConfig(scope);
 
-        // Import the pre existing regionalArtifactCache bucket
-        // (used by code build to cache build dependencies/libraries between builds)
-        IBucket regionalArtifactCache = Bucket.fromBucketName(this, "artifactCache", conf.regionalArtifactCacheBucket);
-
         // Create the source action
         Artifact sourceArtifact = Artifact.artifact("SourceArtifact");
         GitHubSourceAction sourceAction = createSourceAction(conf, sourceArtifact);
 
         // Create the docker build actions
-        // CodeBuildAction dockerBuildAction = createDockerBuildAction(conf, regionalArtifactCache, sourceArtifact);
+        CodeBuildAction readApiDockerBuildAction = createDockerBuildAction("read-api", conf, sourceArtifact);
+        CodeBuildAction writeApiDockerBuildAction = createDockerBuildAction("write-api", conf, sourceArtifact);
+        CodeBuildAction projectionsDockerBuildAction = createDockerBuildAction("projections", conf, sourceArtifact);
 
-        // Create the cdk build and deploy action
-        CodeBuildAction cdkBuildAction = createCDKBuildAction(conf, regionalArtifactCache, sourceArtifact);
+        // Create the cdk synth action
+        Artifact cdkArtifact = Artifact.artifact("CdkArtifact");
+        CodeBuildAction cdkBuildAction = createCDKBuildAction(conf, sourceArtifact, cdkArtifact);
+
+
+        CloudFormationCreateReplaceChangeSetAction prepareChangesAction = new CloudFormationCreateReplaceChangeSetAction(
+            CloudFormationCreateReplaceChangeSetActionProps.builder()
+                .actionName("PrepareChanges")
+                .stackName("EventSourcingInfraStack")
+                .changeSetName("EventSourcingInfraStackChangeSet")
+                .adminPermissions(true)
+                .templatePath(cdkArtifact.atPath("cdk-infra/cdk.out/EventSourcingInfraStack.template.json"))
+                .runOrder(1)
+                .build()
+        );
+
+        CloudFormationExecuteChangeSetAction executeChangesAction = new CloudFormationExecuteChangeSetAction(
+            CloudFormationExecuteChangeSetActionProps.builder()
+                .actionName("ExecuteChanges")
+                .stackName("EventSourcingInfraStack")
+                .changeSetName("EventSourcingInfraStackChangeSet")
+                .runOrder(2)
+                .build()
+        );
 
         // Assemble the pipeline
         Pipeline pipeline = new Pipeline(this, "EventSourcingPipeline", PipelineProps.builder()
@@ -55,13 +69,21 @@ public class EventSourcingPipelineStack extends Stack {
                     .stageName("SourceStage")
                     .actions(List.of(sourceAction))
                     .build(),
-//                StageProps.builder()
-//                    .stageName("DockerBuildStage")
-//                    .actions(List.of(dockerBuildAction))
-//                    .build(),
                 StageProps.builder()
-                    .stageName("CdkBuildStage")
+                    .stageName("DockerBuildStage")
+                    .actions(List.of(
+                        readApiDockerBuildAction,
+                        writeApiDockerBuildAction,
+                        projectionsDockerBuildAction
+                    ))
+                    .build(),
+                StageProps.builder()
+                    .stageName("CdkSynthStage")
                     .actions(List.of(cdkBuildAction))
+                    .build(),
+                StageProps.builder()
+                    .stageName("CfnDeployStage")
+                    .actions(List.of(prepareChangesAction, executeChangesAction))
                     .build()
             ))
             .build());
@@ -88,35 +110,42 @@ public class EventSourcingPipelineStack extends Stack {
     }
 
     private CodeBuildAction createDockerBuildAction(
+        String imageName,
         EventSourcingPipelineStackConfig conf,
-        IBucket regionalArtifactCache,
         Artifact sourceArtifact) {
 
         // Create the ECR registry
-        Repository repository = new Repository(this, "event-sourcing-read-api", RepositoryProps.builder()
+        Repository repository = new Repository(this, "event-sourcing-" + imageName, RepositoryProps.builder()
+            .repositoryName("event-sourcing-" + imageName)
             .build());
 
         BuildEnvironment buildEnvironment = BuildEnvironment.builder()
             .buildImage(LinuxBuildImage.AMAZON_LINUX_2)
             .environmentVariables(Map.of(
-                "IMAGE_REPO_NAME", BuildEnvironmentVariable.builder().value(repository.getRepositoryName()).build(),
+                "REPOSITORY_URI", BuildEnvironmentVariable.builder().value(repository.getRepositoryUri()).build(),
                 "IMAGE_TAG", BuildEnvironmentVariable.builder().value("latest").build()
             ))
             .privileged(true)
             .build();
 
-        PipelineProject buildProject = new PipelineProject(this, "ReadApiPipelineProject",
+        PipelineProject buildProject = new PipelineProject(this, imageName + "-PipelineProject",
             PipelineProjectProps.builder()
                 .environment(buildEnvironment)
-                .buildSpec(BuildSpec.fromSourceFilename("read-api/buildspec.yml"))
-                .cache(Cache.bucket(regionalArtifactCache))
+                .buildSpec(BuildSpec.fromSourceFilename(imageName + "/buildspec.yml"))
+                .cache(Cache.local(
+                    LocalCacheMode.DOCKER_LAYER,
+                    LocalCacheMode.SOURCE,
+                    LocalCacheMode.CUSTOM
+                ))
                 .build());
 
         buildProject.getRole()
             .addManagedPolicy(ManagedPolicy.fromAwsManagedPolicyName("AdministratorAccess"));
 
+        repository.grantPullPush(buildProject);
+
         return new CodeBuildAction(CodeBuildActionProps.builder()
-            .actionName("dockerBuildAction")
+            .actionName(imageName + "dockerBuildAction")
             .input(sourceArtifact)
             .project(buildProject)
             .build());
@@ -124,8 +153,8 @@ public class EventSourcingPipelineStack extends Stack {
 
     private CodeBuildAction createCDKBuildAction(
         EventSourcingPipelineStackConfig conf,
-        IBucket regionalArtifactCache,
-        Artifact sourceArtifact) {
+        Artifact sourceArtifact,
+        Artifact cdkArtifact) {
 
         // Leverage a custom docker image that has a specific build toolchain
         BuildEnvironment buildEnvironment = BuildEnvironment.builder()
@@ -136,26 +165,29 @@ public class EventSourcingPipelineStack extends Stack {
             PipelineProjectProps.builder()
                 .environment(buildEnvironment)
                 .buildSpec(BuildSpec.fromSourceFilename("cdk-infra/buildspec.yml"))
-                .cache(Cache.bucket(regionalArtifactCache))
+                .cache(Cache.local(
+                    LocalCacheMode.DOCKER_LAYER,
+                    LocalCacheMode.SOURCE,
+                    LocalCacheMode.CUSTOM
+                ))
                 .build());
 
         // Adding AdministratorAccess allows the build agent to provision any type of resources but if looking to use
         // in a production context you would want to tighten this up with a custom policy that only allows the build
-//        // agent to provision those resources that you use in your environment stack.
-//        buildProject.getRole()
-//            .addManagedPolicy(ManagedPolicy.fromAwsManagedPolicyName("AdministratorAccess"));
+        // agent to provision those resources that you use in your environment stack.
+        buildProject.getRole()
+            .addManagedPolicy(ManagedPolicy.fromAwsManagedPolicyName("AdministratorAccess"));
 
         return new CodeBuildAction(CodeBuildActionProps.builder()
             .actionName("CdkBuildAction")
             .input(sourceArtifact)
             .project(buildProject)
+            .outputs(List.of(cdkArtifact))
             .build());
     }
 
 
     private class EventSourcingPipelineStackConfig {
-        public final String regionalArtifactCacheBucket;
-        public final String dockerBuildEnvImage;
         public final String githubOwner;
         public final String githubRepo;
         public final String githubBranch;
@@ -163,8 +195,6 @@ public class EventSourcingPipelineStack extends Stack {
         public final String githubSecretJsonField;
 
         public EventSourcingPipelineStackConfig(Construct scope) {
-            regionalArtifactCacheBucket = getUnsafeValue(scope, "regionalArtifactCacheBucketName");
-            dockerBuildEnvImage = getUnsafeValue(scope, "dockerBuildEnvImage");
             githubOwner = getUnsafeValue(scope, "githubOwner");
             githubRepo = getUnsafeValue(scope, "githubRepo");
             githubBranch = getUnsafeValue(scope, "githubBranch");

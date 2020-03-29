@@ -1,47 +1,13 @@
 package software.amazon.samples.read;
-//
-//import org.apache.http.HttpHost;
-//import org.elasticsearch.action.get.GetRequest;
-//import org.elasticsearch.action.get.GetResponse;
-//import org.elasticsearch.action.search.SearchRequest;
-//import org.elasticsearch.action.search.SearchResponse;
-//import org.elasticsearch.client.RequestOptions;
-//import org.elasticsearch.client.RestClient;
-//import org.elasticsearch.client.RestHighLevelClient;
-//import org.elasticsearch.index.query.QueryBuilder;
-//import org.elasticsearch.index.query.QueryBuilders;
-//import org.elasticsearch.search.SearchHit;
-//import org.elasticsearch.search.builder.SearchSourceBuilder;
-//import org.slf4j.Logger;
-//import org.slf4j.LoggerFactory;
-//import software.amazon.samples.domain.Account;
-//import software.amazon.samples.domain.Transaction;
-//
-//import java.io.IOException;
-//import java.time.Instant;
-//import java.util.ArrayList;
-//import java.util.Iterator;
-//import java.util.List;
-//import java.util.Optional;
-//
-//public class ElasticsearchReadApi implements ReadApi{
-//    @Override
-//    public Optional<List<Account>> listAccounts() {
-//        return Optional.of(List.of(new Account("1", "Savings")));
-//    }
-//
-//    @Override
-//    public Optional<Account> getAccount(String id) {
-//        return Optional.of(new Account("1", "Savings"));
-//    }
-//
-//    @Override
-//    public Optional<List<Transaction>> getAccountTransactions(String id) {
-//        return Optional.of(List.of(new Transaction("1", 100.00)));
-//    }
-//}
 
+import com.amazonaws.auth.AWS4Signer;
+import com.amazonaws.auth.AWSCredentialsProvider;
+import com.amazonaws.auth.ContainerCredentialsProvider;
+import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
+import com.amazonaws.http.AWSRequestSigningApacheInterceptor;
+import com.amazonaws.internal.CredentialsEndpointProvider;
 import org.apache.http.HttpHost;
+import org.apache.http.HttpRequestInterceptor;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.search.SearchRequest;
@@ -49,6 +15,9 @@ import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.client.indices.CreateIndexRequest;
+import org.elasticsearch.client.indices.GetIndexRequest;
+import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
@@ -72,19 +41,98 @@ import java.util.Optional;
 public class ElasticsearchReadApi implements ReadApi {
     private static final Logger log = LoggerFactory.getLogger(ElasticsearchReadApi.class);
 
-    private static String ELASTICSEARCH_HOST = "elasticsearch";
-    private static int ELASTICSEARCH_PORT = 9200;
-
     private static final String SUMMARY_INDEX = "simplesourcedemo_account_summary";
     private static final String TRANSACTION_INDEX = "simplesourcedemo_account_transaction";
-
 
     private final RestHighLevelClient esClient;
 
     public ElasticsearchReadApi() {
-        esClient = new RestHighLevelClient(
-            RestClient.builder(
-                new HttpHost(ELASTICSEARCH_HOST, ELASTICSEARCH_PORT, "http")));
+        String elasticsearchUrl = System.getenv("ELASTICSEARCH_URL");
+        //int elasticsearchPort = Integer.parseInt(System.getenv("ELASTICSEARCH_PORT"));
+
+        esClient = esClient(elasticsearchUrl);
+        log.info("Elasticsearch client created");
+
+        createIndiciesIfNotPresent();
+        log.info("Back from indicies check");
+    }
+
+    // Adds the interceptor to the ES REST client
+    public RestHighLevelClient esClient(String elasticsearchUrl) {
+        AWSCredentialsProvider credentialsProvider = new ContainerCredentialsProvider();
+        log.info("creds: "+ credentialsProvider.getCredentials().getAWSAccessKeyId());
+        log.info("creds: "+ credentialsProvider.getCredentials().getAWSSecretKey());
+        String serviceName = "es";
+
+        AWS4Signer signer = new AWS4Signer();
+        signer.setServiceName(serviceName);
+        signer.setRegionName("ap-southeast-2"); // TODO how to inject
+
+        String realEndpoint = "https://vpc-eventsourcing-sqmle6z6em5tkb2hz42tgv6yoe.ap-southeast-2.es.amazonaws.com";
+        String thisEndpoint = "https://" + elasticsearchUrl;
+        log.info(realEndpoint);
+        log.info(thisEndpoint);
+
+        HttpRequestInterceptor interceptor = new AWSRequestSigningApacheInterceptor(serviceName, signer, credentialsProvider);
+
+        return new RestHighLevelClient(RestClient.builder(HttpHost.create("https://" + elasticsearchUrl))
+            .setHttpClientConfigCallback(hacb -> hacb.addInterceptorLast(interceptor)));
+    }
+
+    private void createIndiciesIfNotPresent() {
+        try {
+            boolean summaryIndexExists = esClient.indices().exists(
+                new GetIndexRequest(SUMMARY_INDEX), RequestOptions.DEFAULT);
+
+            log.info("summary index is present? -> " + summaryIndexExists);
+            if (!summaryIndexExists) createSummaryIndex();
+
+            boolean transactionIndexExists = esClient.indices().exists(
+                new GetIndexRequest(TRANSACTION_INDEX), RequestOptions.DEFAULT);
+
+            log.info("transaction index is present? -> " + transactionIndexExists);
+            if (!transactionIndexExists) createTransactionIndex();
+        } catch (IOException e) {
+            log.error("Unable to create indicies if not present, might be a race condition so swallowing", e);
+        }
+    }
+
+    private void createSummaryIndex() throws IOException {
+        log.info("Creating summary index: " + SUMMARY_INDEX);
+        CreateIndexRequest request = new CreateIndexRequest(SUMMARY_INDEX);
+        request.mapping(
+            "{\n" +
+                "  \"properties\": {\n" +
+                "    \"accountName\": {\n" +
+                "      \"type\": \"keyword\"\n" +
+                "    },\n" +
+                "    \"balance\": {\n" +
+                "      \"type\": \"double\"\n" +
+                "    }\n" +
+                "  }\n" +
+                "}",
+            XContentType.JSON);
+
+        esClient.indices().create(request, RequestOptions.DEFAULT);
+    }
+
+    private void createTransactionIndex() throws IOException {
+        log.info("Creating transaction index: " + TRANSACTION_INDEX);
+        CreateIndexRequest request = new CreateIndexRequest(TRANSACTION_INDEX);
+        request.mapping(
+            "{\n" +
+                "  \"properties\": {\n" +
+                "    \"account\": {\n" +
+                "      \"type\": \"keyword\"\n" +
+                "    },\n" +
+                "    \"amount\": {\n" +
+                "      \"type\": \"double\"\n" +
+                "    }\n" +
+                "  }\n" +
+                "}",
+            XContentType.JSON);
+
+        esClient.indices().create(request, RequestOptions.DEFAULT);
     }
 
     @Override
@@ -112,12 +160,16 @@ public class ElasticsearchReadApi implements ReadApi {
     public List<AccountSummary> list() {
         SearchRequest searchRequest = new SearchRequest();
         searchRequest.indices(SUMMARY_INDEX);
-
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+        searchSourceBuilder.query(QueryBuilders.matchAllQuery());
+        searchRequest.source(searchSourceBuilder);
 
         try {
+            log.info("before search");
             SearchResponse searchResponse = esClient.search(searchRequest, RequestOptions.DEFAULT);
-
+            log.info("after search");
             ArrayList<AccountSummary> result = new ArrayList<>();
+
 
             Iterator<SearchHit> searchHits = searchResponse.getHits().iterator();
             SearchHit searchHit;
@@ -132,6 +184,8 @@ public class ElasticsearchReadApi implements ReadApi {
             return result;
 
         } catch (IOException e) {
+            log.error("list accounts failed", e);
+            log.error(e.getMessage());
             throw new RuntimeException("ElasticSearch query failure", e);
         }
     }

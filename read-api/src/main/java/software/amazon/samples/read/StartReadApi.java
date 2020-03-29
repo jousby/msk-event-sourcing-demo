@@ -42,6 +42,7 @@ public class StartReadApi {
     }
 
     public static void defineRoutes(ReadApi readApi) {
+        get("/", (req, res) -> "OK");
         get("/healthcheck", (req, res) -> "OK");
 
         get("/accounts", (req, res) -> {

@@ -30,11 +30,10 @@ subprojects {
   }
 }
 
-
-
 // Dependency Versions --------------------------------------------------------
 
 ext {
+  awsJavaSdkVersion = '1.11.756'
   cdkVersion = '1.31.0'
   elasticsearchVersion = '7.4.2' // 7.4.2 lines up with Open Distro for Elasticsearch 1.4.0
   gsonVersion = '2.8.5'
@@ -45,6 +44,12 @@ ext {
   simpleSourcingVersion = '0.2.7'
   sparkFrameworkVersion = '2.8.0'
   javaxValidationVersion = '2.0.1.Final'
+}
+
+// Kafka imports log4j, dropping this to be replaced by log4j-over-slf4j
+configurations.all {
+  exclude group: "org.slf4j", module: "slf4j-log4j12"
+  exclude group: "log4j", module: "log4j"
 }
 
 // Sub Project Configurations -------------------------------------------------
@@ -72,6 +77,7 @@ project(':cdk-infra') {
     implementation "software.amazon.awscdk:ec2:${cdkVersion}"
     implementation "software.amazon.awscdk:ecr:${cdkVersion}"
     implementation "software.amazon.awscdk:ecs:${cdkVersion}"
+    implementation "software.amazon.awscdk:ecs-patterns:${cdkVersion}"
     implementation "software.amazon.awscdk:elasticsearch:${cdkVersion}"
     implementation "software.amazon.awscdk:msk:${cdkVersion}"
     implementation "software.amazon.awscdk:s3:${cdkVersion}"
@@ -95,12 +101,13 @@ project(':read-api') {
   dependencies {
     implementation project(':common')
     implementation "com.sparkjava:spark-core:${sparkFrameworkVersion}"
-    implementation "ch.qos.logback:logback-classic:${logbackVersion}"
-    implementation "org.apache.logging.log4j:log4j-to-slf4j:2.13.0"
+    implementation "com.amazonaws:aws-java-sdk-core:${awsJavaSdkVersion}"
     implementation "org.elasticsearch.client:elasticsearch-rest-high-level-client:${elasticsearchVersion}"
     implementation "org.elasticsearch.client:elasticsearch-rest-client:${elasticsearchVersion}"
     implementation "org.elasticsearch:elasticsearch:${elasticsearchVersion}"
     implementation "com.google.code.gson:gson:${gsonVersion}"
+    implementation "ch.qos.logback:logback-classic:${logbackVersion}"
+    implementation 'org.slf4j:log4j-over-slf4j:1.7.30'
     testImplementation "junit:junit:${junitVersion}"
   }
   application {
@@ -113,12 +120,14 @@ project(':write-api') {
   apply plugin: 'com.github.johnrengelman.shadow'
   dependencies {
     implementation project(':common')
+    implementation "com.amazonaws:aws-java-sdk-kafka:${awsJavaSdkVersion}"
     implementation "io.simplesource:simplesource-command-api:${simpleSourcingVersion}"
     implementation "io.simplesource:simplesource-command-kafka:${simpleSourcingVersion}"
     implementation "io.simplesource:simplesource-command-serialization:${simpleSourcingVersion}"
     implementation "com.sparkjava:spark-core:${sparkFrameworkVersion}"
     implementation "ch.qos.logback:logback-classic:${logbackVersion}"
-    implementation "org.apache.logging.log4j:log4j-to-slf4j:2.13.0"
+    implementation 'org.apache.httpcomponents:httpcomponents-client:4.5.12'
+    implementation 'org.slf4j:log4j-over-slf4j:1.7.30'
     testImplementation "junit:junit:${junitVersion}"
   }
   application {
@@ -131,6 +140,9 @@ project(':projections') {
   apply plugin: 'com.github.johnrengelman.shadow'
   dependencies {
     implementation project(':common')
+    implementation "com.sparkjava:spark-core:${sparkFrameworkVersion}"
+    implementation "com.amazonaws:aws-java-sdk-core:${awsJavaSdkVersion}"
+    implementation "com.amazonaws:aws-java-sdk-kafka:${awsJavaSdkVersion}"
     implementation "io.simplesource:simplesource-command-api:${simpleSourcingVersion}"
     implementation "io.simplesource:simplesource-command-kafka:${simpleSourcingVersion}"
     implementation "io.simplesource:simplesource-command-serialization:${simpleSourcingVersion}"
@@ -139,7 +151,7 @@ project(':projections') {
     implementation "org.elasticsearch:elasticsearch:${elasticsearchVersion}"
     implementation "org.apache.kafka:kafka-clients:${kafkaVersion}"
     implementation "ch.qos.logback:logback-classic:${logbackVersion}"
-    implementation "org.apache.logging.log4j:log4j-to-slf4j:2.13.0"
+    implementation 'org.slf4j:log4j-over-slf4j:1.7.30'
     testImplementation "junit:junit:${junitVersion}"
   }
   application {

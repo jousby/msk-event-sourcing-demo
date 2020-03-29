@@ -40,13 +40,13 @@ export async function postData(path, message, callback, onError) {
                     callback(null);
                 }
             }
-            
+
         }
     } catch (error) {
         if (onError) {
             onError(error);
-            
+
     }
     console.error('Error:', error);
-}
+    }
 }

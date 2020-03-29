@@ -4,36 +4,38 @@ phases:
   install:
     runtime-versions:
       java: corretto11
-      nodejs: 12
+      nodejs: 10
     commands:
       - npm install -g aws-cdk
-
   pre_build:
     commands:
-      - echo "Log Java version"
+      - echo "Log java version"
       - java --version
-      - echo "Log Gradle version"
+      - echo "Log gradle version"
       - gradle --version
-      - echo "Log Node version"
+      - echo "Log node version"
       - node --version
-      - echo "Log NPM version"
+      - echo "Log npm version"
       - npm --version
-      - echo "Log CDK version"
+      - echo "Log cdk version"
       - cdk --version
-
   build:
     commands:
       - echo "Build started on `date`"
-      - echo "Running gradle build"
+      - echo "Running gradle build..."
       - gradle build
-      - echo "Running cdk to deploy infrastructure cloudformation stack"
+      - echo "Running cdk synth..."
       - cd cdk-infra
-      - cdk deploy
-
+      - cdk synth
   post_build:
     commands:
       - echo "Build completed on `date`"
 
+artifacts:
+  files:
+    - 'cdk-infra/cdk.out/EventSourcingInfraStack.template.json'
+
 cache:
   paths:
     - '/root/.gradle/caches/**/*'
+    - '/root/.npm/**/*'

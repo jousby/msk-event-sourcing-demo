@@ -7,8 +7,10 @@ public abstract class AccountCommand {
 
     private AccountCommand() {}
 
-    public abstract <T> T match(Function<CreateAccount, T> f1, Function<Deposit, T> f2, Function<Withdraw, T> f3);
-
+    public abstract <T> T match(
+        Function<CreateAccount, T> f1,
+        Function<Deposit, T> f2,
+        Function<Withdraw, T> f3);
 
     public final static class CreateAccount extends AccountCommand {
         public final String name;
@@ -20,7 +22,10 @@ public abstract class AccountCommand {
         }
 
         @Override
-        public <T> T match(Function<CreateAccount, T> f1, Function<Deposit, T> f2, Function<Withdraw, T> f3) {
+        public <T> T match(
+            Function<CreateAccount, T> f1,
+            Function<Deposit, T> f2,
+            Function<Withdraw, T> f3) {
             return f1.apply(this);
         }
     }
@@ -33,7 +38,10 @@ public abstract class AccountCommand {
         }
 
         @Override
-        public <T> T match(Function<CreateAccount, T> f1, Function<Deposit, T> f2, Function<Withdraw, T> f3) {
+        public <T> T match(
+            Function<CreateAccount, T> f1,
+            Function<Deposit, T> f2,
+            Function<Withdraw, T> f3) {
             return f2.apply(this);
         }
     }
@@ -46,7 +54,10 @@ public abstract class AccountCommand {
         }
 
         @Override
-        public <T> T match(Function<CreateAccount, T> f1, Function<Deposit, T> f2, Function<Withdraw, T> f3) {
+        public <T> T match(
+            Function<CreateAccount, T> f1,
+            Function<Deposit, T> f2,
+            Function<Withdraw, T> f3) {
             return f3.apply(this);
         }
     }
