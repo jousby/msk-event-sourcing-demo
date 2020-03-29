@@ -35,8 +35,8 @@ subprojects {
 // Dependency Versions --------------------------------------------------------
 
 ext {
-  cdkVersion = '1.24.0'
-  elasticsearchVersion = '7.3.2' // 7.3.2 lines up with Open Distro for Elasticsearch 1.3.0
+  cdkVersion = '1.31.0'
+  elasticsearchVersion = '7.4.2' // 7.4.2 lines up with Open Distro for Elasticsearch 1.4.0
   gsonVersion = '2.8.5'
   junitVersion = '4.12'
   kafkaVersion = '2.3.0'
@@ -55,6 +55,7 @@ project(':cdk-pipeline') {
     implementation "software.amazon.awscdk:codebuild:${cdkVersion}"
     implementation "software.amazon.awscdk:codepipeline:${cdkVersion}"
     implementation "software.amazon.awscdk:codepipeline-actions:${cdkVersion}"
+    implementation "software.amazon.awscdk:ecr:${cdkVersion}"
     implementation "software.amazon.awscdk:iam:${cdkVersion}"
     implementation "software.amazon.awscdk:s3:${cdkVersion}"
     implementation "software.amazon.awscdk:secretsmanager:${cdkVersion}"
@@ -69,6 +70,7 @@ project(':cdk-infra') {
   dependencies {
     implementation "software.amazon.awscdk:cdk-assets:${cdkVersion}"
     implementation "software.amazon.awscdk:ec2:${cdkVersion}"
+    implementation "software.amazon.awscdk:ecr:${cdkVersion}"
     implementation "software.amazon.awscdk:ecs:${cdkVersion}"
     implementation "software.amazon.awscdk:elasticsearch:${cdkVersion}"
     implementation "software.amazon.awscdk:msk:${cdkVersion}"

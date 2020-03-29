@@ -1,0 +1,39 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      java: corretto11
+      node: 12
+    commands:
+      - npm install -g aws-cdk
+
+  pre_build:
+    commands:
+      - echo "Log Java version"
+      - java --version
+      - echo "Log Gradle version"
+      - gradle --version
+      - echo "Log Node version"
+      - node --version
+      - echo "Log NPM version"
+      - npm --version
+      - echo "Log CDK version"
+      - cdk --version
+
+  build:
+    commands:
+      - echo "Build started on `date`"
+      - echo "Running gradle build"
+      - gradle build
+      - echo "Running cdk to deploy infrastructure cloudformation stack"
+      - cd cdk-infra
+      - cdk deploy
+
+  post_build:
+    commands:
+      - echo "Build completed on `date`"
+
+cache:
+  paths:
+    - '/root/.gradle/caches/**/*'

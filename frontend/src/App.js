@@ -10,7 +10,7 @@ function App() {
     return (
         <div className="App container">
             <nav className="row navbar navbar-light mb-2">
-                <h2><a href="/accounts">UI Demo</a></h2>
+                <h2><a href="/accounts">Ousobank</a></h2>
             </nav>
             <SystemMessage/>
             <HashRouter>

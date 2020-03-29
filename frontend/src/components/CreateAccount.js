@@ -11,8 +11,7 @@ function CreateAccount(){
    function create(){
      console.log("create account");
     postData('http://localhost:4567/accounts?accountName='+name+'&openingBalance='+balance,{}, data=>{
-
-      history.push("/myAccounts");
+      //history.push("/myAccounts");
     },null);
    }
 
