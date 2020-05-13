@@ -1,6 +1,6 @@
 {
   "app": "gradle -q run",
   "context": {
-    "read-api-repository": ""
+    "kafkaClusterConfigARN": ""
   }
 }

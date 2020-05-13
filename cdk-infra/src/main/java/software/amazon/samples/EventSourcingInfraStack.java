@@ -16,6 +16,7 @@ import software.amazon.awscdk.services.msk.CfnClusterProps;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class EventSourcingInfraStack extends Stack {
@@ -26,6 +27,9 @@ public class EventSourcingInfraStack extends Stack {
     public EventSourcingInfraStack(final Construct scope, final String id, final StackProps props) {
         super(scope, id, props);
 
+        // Build a configuration object from context injected from values stored in 'cdk.json' or via cdk cli
+        EventSourcingInfraStackConfig conf = new EventSourcingInfraStackConfig(scope);
+
         // Vpc setup
         Vpc vpc = new Vpc(this, "EventSourcingVPC", VpcProps.builder().build());
 
@@ -35,7 +39,7 @@ public class EventSourcingInfraStack extends Stack {
             .securityGroupName("eventSourcingKafkaSG")
             .vpc(vpc)
             .build());
-        CfnCluster kafkaCluster = eventSourcingKafka(vpc, kafkaSecurityGroup);
+        CfnCluster kafkaCluster = eventSourcingKafka(vpc, kafkaSecurityGroup, conf);
         String kafkaClusterArn = Token.asString(Fn.ref(kafkaCluster.getClusterName()));
 
         // Elasticsearch
@@ -205,10 +209,13 @@ public class EventSourcingInfraStack extends Stack {
             .build());
     }
 
-    private CfnCluster eventSourcingKafka(Vpc vpc, ISecurityGroup kafkaSecurityGroup) {
+    private CfnCluster eventSourcingKafka(Vpc vpc, ISecurityGroup kafkaSecurityGroup, EventSourcingInfraStackConfig conf) {
         return  new CfnCluster(this, "EventSourcingKafkaCluster",
             CfnClusterProps.builder()
                 .clusterName("EventSourcingKafkaCluster")
+                .configurationInfo(CfnCluster.ConfigurationInfoProperty.builder()
+                    .arn(conf.kafkaClusterConfigARN)
+                    .build())
                 .kafkaVersion("2.3.1")
                 .numberOfBrokerNodes(3)
                 .brokerNodeGroupInfo(CfnCluster.BrokerNodeGroupInfoProperty.builder()
@@ -265,5 +272,23 @@ public class EventSourcingInfraStack extends Stack {
                     "rest.action.multi.allow_explicit_index", "true"
                 ))
                 .build());
+    }
+
+    private class EventSourcingInfraStackConfig {
+        public final String kafkaClusterConfigARN;
+
+        public EventSourcingInfraStackConfig(Construct scope) {
+            kafkaClusterConfigARN = getUnsafeValue(scope, "kafkaClusterConfigARN");
+        }
+
+        private String getUnsafeValue(Construct scope, String key) {
+            Optional<Object> optValue = Optional.ofNullable(
+                scope.getNode().tryGetContext(key)
+            );
+
+            return optValue
+                .map(v -> v.toString())
+                .orElseThrow();
+        }
     }
 }
